@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XAUUSD Mini Dashboard</title>
-    <!-- Memanggil library grafik gratis dari TradingView -->
+    <title>XAUUSD Live Command Center</title>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         body { 
@@ -15,36 +14,42 @@
             text-align: center; 
         }
         header {
-            padding: 15px;
+            padding: 12px;
             background: #1e222d;
             border-bottom: 1px solid #2b2b43;
         }
-        h2 { margin: 0; font-size: 18px; color: #f0b90b; }
-        p { margin: 5px 0 0 0; font-size: 12px; color: #848e9c; }
-        #chart-container { width: 100vw; height: 75vh; }
+        h2 { margin: 0; font-size: 17px; color: #f0b90b; }
+        p { margin: 3px 0 0 0; font-size: 11px; color: #848e9c; }
+        #chart-container { width: 100vw; height: 65vh; }
         .panel {
-            padding: 10px;
+            padding: 12px;
             background: #1e222d;
-            font-size: 13px;
+            font-size: 12px;
             border-top: 1px solid #2b2b43;
+            text-align: left;
+            box-sizing: border-box;
         }
+        .panel div { margin-bottom: 6px; }
+        .badge { font-weight: bold; padding: 2px 6px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
     <header>
-        <h2>XAUUSD Live Command Center</h2>
-        <p>Sistem Analisa & Grafik Pribadi</p>
+        <h2>XAUUSD Mobile Dashboard</h2>
+        <p>Sistem Mandiri Tanpa VPS & Tanpa Biaya</p>
     </header>
 
     <div id="chart-container"></div>
 
     <div class="panel">
-        Status Sesi: <span id="session-status" style="color: #0ecb81;">Memeriksa...</span>
+        <div>🕒 <b>Sesi Market:</b> <span id="session-status">Memeriksa...</span></div>
+        <div>📊 <b>Analisa Tren (MA):</b> <span id="trend-status" class="badge">Menghitung...</span></div>
+        <div>⚠️ <b>Peringatan Risiko:</b> <span id="risk-status" style="color: #f0b90b;">Pantau berita High-Impact USD</span></div>
     </div>
 
     <script>
-        // Membuat Grafik Candlestick
+        // 1. Inisialisasi Grafik
         const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
             layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
             grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
@@ -53,8 +58,8 @@
 
         const candleSeries = chart.addCandlestickSeries();
 
-        // Mengambil data harga XAUUSD (menggunakan proksi data emas digital PAXG/USDT dari Binance API)
-        fetch('https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=1h&limit=100')
+        // 2. Tarik Data Harga XAUUSD (via PAXG/USDT Binance API)
+        fetch('https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=1h&limit=120')
             .then(res => res.json())
             .then(data => {
                 const formattedData = data.map(d => ({
@@ -65,16 +70,32 @@
                     close: parseFloat(d[4])
                 }));
                 candleSeries.setData(formattedData);
+
+                // Logika Sederhana: Deteksi Tren Berdasarkan Harga Penutupan Terakhir
+                const closes = formattedData.map(d => d.close);
+                const hargaTerakhir = closes[closes.length - 1];
+                const hargaSebelumnya = closes[closes.length - 10]; // perbandingan 10 candle lalu
+                
+                const trendEl = document.getElementById('trend-status');
+                if (hargaTerakhir > hargaSebelumnya) {
+                    trendEl.innerText = "BULLISH (Kecenderungan Naik)";
+                    trendEl.style.background = "#0ecb81";
+                    trendEl.style.color = "#000";
+                } else {
+                    trendEl.innerText = "BEARISH (Kecenderungan Turun)";
+                    trendEl.style.background = "#f6465d";
+                    trendEl.style.color = "#fff";
+                }
             });
 
-        // Deteksi Sederhana Jam Sesi Market (WIB)
+        // 3. Deteksi Jam Sesi (WIB)
         const jamSekarang = new Date().getHours();
         const statusEl = document.getElementById('session-status');
-        if (jamSekarang >= 14 && jamSekarang <= 23) {
-            statusEl.innerText = "Aktif (Sesi London / New York - Likuiditas Tinggi)";
+        if (jamSekarang >= 13 && jamSekarang <= 23) {
+            statusEl.innerText = "London / New York Aktif (Likuiditas Bagus)";
             statusEl.style.color = "#0ecb81";
         } else {
-            statusEl.innerText = "Sepi (Di Luar Sesi Utama - Hati-hati Spread)";
+            statusEl.innerText = "Sesi Sepi / Asia Dini Hari (Waspada Spread Lebar)";
             statusEl.style.color = "#f6465d";
         }
     </script>
