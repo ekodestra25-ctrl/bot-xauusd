@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XAUUSD Mini Dashboard</title>
+    <!-- Memanggil library grafik gratis dari TradingView -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            background: #131722; 
+            color: #d1d4dc; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            text-align: center; 
+        }
+        header {
+            padding: 15px;
+            background: #1e222d;
+            border-bottom: 1px solid #2b2b43;
+        }
+        h2 { margin: 0; font-size: 18px; color: #f0b90b; }
+        p { margin: 5px 0 0 0; font-size: 12px; color: #848e9c; }
+        #chart-container { width: 100vw; height: 75vh; }
+        .panel {
+            padding: 10px;
+            background: #1e222d;
+            font-size: 13px;
+            border-top: 1px solid #2b2b43;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>XAUUSD Live Command Center</h2>
+        <p>Sistem Analisa & Grafik Pribadi</p>
+    </header>
+
+    <div id="chart-container"></div>
+
+    <div class="panel">
+        Status Sesi: <span id="session-status" style="color: #0ecb81;">Memeriksa...</span>
+    </div>
+
+    <script>
+        // Membuat Grafik Candlestick
+        const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
+            layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
+            grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
+            timeScale: { timeVisible: true, secondsVisible: false }
+        });
+
+        const candleSeries = chart.addCandlestickSeries();
+
+        // Mengambil data harga XAUUSD (menggunakan proksi data emas digital PAXG/USDT dari Binance API)
+        fetch('https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=1h&limit=100')
+            .then(res => res.json())
+            .then(data => {
+                const formattedData = data.map(d => ({
+                    time: d[0] / 1000,
+                    open: parseFloat(d[1]),
+                    high: parseFloat(d[2]),
+                    low: parseFloat(d[3]),
+                    close: parseFloat(d[4])
+                }));
+                candleSeries.setData(formattedData);
+            });
+
+        // Deteksi Sederhana Jam Sesi Market (WIB)
+        const jamSekarang = new Date().getHours();
+        const statusEl = document.getElementById('session-status');
+        if (jamSekarang >= 14 && jamSekarang <= 23) {
+            statusEl.innerText = "Aktif (Sesi London / New York - Likuiditas Tinggi)";
+            statusEl.style.color = "#0ecb81";
+        } else {
+            statusEl.innerText = "Sepi (Di Luar Sesi Utama - Hati-hati Spread)";
+            statusEl.style.color = "#f6465d";
+        }
+    </script>
+
+</body>
+</html>
