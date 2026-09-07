@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XAUUSD Live Command Center</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            background: #131722; 
+            color: #d1d4dc; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            text-align: center; 
+        }
+        header {
+            padding: 12px;
+            background: #1e222d;
+            border-bottom: 1px solid #2b2b43;
+        }
+        h2 { margin: 0; font-size: 17px; color: #f0b90b; }
+        p { margin: 3px 0 0 0; font-size: 11px; color: #848e9c; }
+        #chart-container { width: 100vw; height: 65vh; }
+        .panel {
+            padding: 12px;
+            background: #1e222d;
+            font-size: 12px;
+            border-top: 1px solid #2b2b43;
+            text-align: left;
+            box-sizing: border-box;
+        }
+        .panel div { margin-bottom: 6px; }
+        .badge { font-weight: bold; padding: 2px 6px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>XAUUSD Mobile Dashboard</h2>
+        <p>Sistem Mandiri Tanpa VPS & Tanpa Biaya</p>
+    </header>
+
+    <div id="chart-container"></div>
+
+    <div class="panel">
+        <div>🕒 <b>Sesi Market:</b> <span id="session-status">Memeriksa...</span></div>
+        <div>📊 <b>Analisa Tren (MA):</b> <span id="trend-status" class="badge">Menghitung...</span></div>
+        <div>⚠️ <b>Peringatan Risiko:</b> <span id="risk-status" style="color: #f0b90b;">Pantau berita High-Impact USD</span></div>
+    </div>
+
+    <script>
+        // 1. Inisialisasi Grafik
+        const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
+            layout: { background: { color: '#131722' }, textColor: '#d1d4dc' },
+            grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
+            timeScale: { timeVisible: true, secondsVisible: false }
+        });
+
+        const candleSeries = chart.addCandlestickSeries();
+
+        // 2. Tarik Data Harga XAUUSD (via PAXG/USDT Binance API)
+        fetch('https://api.binance.com/api/v3/klines?symbol=PAXGUSDT&interval=1h&limit=120')
+            .then(res => res.json())
+            .then(data => {
+                const formattedData = data.map(d => ({
+                    time: d[0] / 1000,
+                    open: parseFloat(d[1]),
+                    high: parseFloat(d[2]),
+                    low: parseFloat(d[3]),
+                    close: parseFloat(d[4])
+                }));
+                candleSeries.setData(formattedData);
+
+                // Logika Sederhana: Deteksi Tren Berdasarkan Harga Penutupan Terakhir
+                const closes = formattedData.map(d => d.close);
+                const hargaTerakhir = closes[closes.length - 1];
+                const hargaSebelumnya = closes[closes.length - 10]; // perbandingan 10 candle lalu
+                
+                const trendEl = document.getElementById('trend-status');
+                if (hargaTerakhir > hargaSebelumnya) {
+                    trendEl.innerText = "BULLISH (Kecenderungan Naik)";
+                    trendEl.style.background = "#0ecb81";
+                    trendEl.style.color = "#000";
+                } else {
+                    trendEl.innerText = "BEARISH (Kecenderungan Turun)";
+                    trendEl.style.background = "#f6465d";
+                    trendEl.style.color = "#fff";
+                }
+            });
+
+        // 3. Deteksi Jam Sesi (WIB)
+        const jamSekarang = new Date().getHours();
+        const statusEl = document.getElementById('session-status');
+        if (jamSekarang >= 13 && jamSekarang <= 23) {
+            statusEl.innerText = "London / New York Aktif (Likuiditas Bagus)";
+            statusEl.style.color = "#0ecb81";
+        } else {
+            statusEl.innerText = "Sesi Sepi / Asia Dini Hari (Waspada Spread Lebar)";
+            statusEl.style.color = "#f6465d";
+        }
+    </script>
+
+</body>
+</html>
